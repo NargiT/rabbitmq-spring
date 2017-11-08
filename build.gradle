@@ -8,7 +8,7 @@
 
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
-apply plugin: 'application'
+apply plugin: 'org.springframework.boot'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -18,15 +18,22 @@ repositories {
 }
 
 dependencies {
-    compile 'org.springframework.amqp:spring-rabbit:2.0.0.RELEASE'
+    compile "org.springframework.boot:spring-boot-starter-amqp"
 }
 
 jar {
     baseName = 'rabbitmq-test'
-    version = '0.1.0'
+    version =  '0.1.0'
 }
-
-mainClassName = 'hello.Application'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.5.8.RELEASE")
+    }
+}

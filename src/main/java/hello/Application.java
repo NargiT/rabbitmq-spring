@@ -1,55 +1,47 @@
 package hello;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.ShutdownSignalException;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
-import org.springframework.amqp.rabbit.connection.ChannelListener;
 import org.springframework.amqp.rabbit.connection.Connection;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionListener;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.context.support.AbstractApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
+@SpringBootApplication
 public class Application {
 
-  public static void main(final String... args) throws Exception {
+  @Bean
+  TopicExchange exchange() {
+    return new TopicExchange("spring-boot-exchange", true, false);
+  }
 
-    AbstractApplicationContext ctx = new ClassPathXmlApplicationContext("context2.xml");
-    RabbitTemplate template = ctx.getBean(RabbitTemplate.class);
-
-    final CachingConnectionFactory connectionFactory = (CachingConnectionFactory) ctx.getBean("connectionFactory");
-    connectionFactory.addConnectionListener(
-        new ConnectionListener() {
-
-          @Override
-          public void onCreate(Connection connection) {
-            System.out.println("Connection Created");
-          }
-
-          @Override
-          public void onShutDown(ShutdownSignalException signal) {
-            System.out.println("Connection Shut down");
-          }
-
-        }
-    );
-
-    connectionFactory.addChannelListener(new ChannelListener() {
+  @Bean
+  ConnectionFactory connectionFactory() {
+    CachingConnectionFactory connectionFactory = new CachingConnectionFactory("localhost", 5672);
+    final String user = "impersonator1";
+    connectionFactory.setUsername(user);
+    final String vhost = "impersonator";
+    connectionFactory.setPassword(vhost);
+    connectionFactory.setVirtualHost("/" + vhost);
+    connectionFactory.addChannelListener((channel, transactional) -> System.out.println("Channel created"));
+    connectionFactory.addConnectionListener(new ConnectionListener() {
       @Override
-      public void onCreate(Channel channel, boolean transactional) {
-        System.out.println("Channel created");
+      public void onCreate(Connection connection) {
+        System.out.println("Connection created");
       }
 
       @Override
-      public void onShutDown(ShutdownSignalException signal) {
-        System.out.println("Channel shut down");
+      public void onClose(Connection connection) {
+        System.out.println("Connection closed");
       }
     });
+    return connectionFactory;
+  }
 
-    template.convertAndSend("Hello, world!");
-
-    Thread.sleep(1000);
-    ctx.close();
+  public static void main(String[] args) throws InterruptedException {
+    SpringApplication.run(Application.class, args);
   }
 
 }
